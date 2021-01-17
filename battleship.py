@@ -2,8 +2,9 @@
 """
 Created on Sun Dec 20 20:44:40 2020
 
-@author: Asus
+@author: João Afonso
 """
+
 import numpy as np 
 import random
 import scipy.ndimage as ndimage
@@ -23,6 +24,7 @@ class Battleship():
         self.win = False
         self.hits = []
         self.attempts = []
+        self.boats_destroyed = []
         
         self.boat_list = []
         self.not_possible = []
@@ -30,6 +32,9 @@ class Battleship():
             self.boat_list.append(self.add_boat())
             rows, cols = np.where(self.main_board == -1)
             self.not_possible = [(rows[i], cols[i]) for i in range(len(rows))]
+            
+        for boat in self.boat_list:
+            boat = boat.sort()
         
         self.main_board = np.where(self.main_board!=1, 0, self.main_board)
         
@@ -46,8 +51,6 @@ class Battleship():
         print("Welcome to Battleship!")
         print("You have 5 ships to destroy (all with 3 cells of size). Good luck!")
         
-        self.num_attempts = 0
-        
         self.print_player_board()
         
         while self.win==False:
@@ -55,12 +58,11 @@ class Battleship():
             guess = input("\nInsert your guess (ROWCOL): ")
             valid = self.add_guess(guess)
             if valid:
-                self.num_attempts = self.num_attempts + 1
                 self.print_player_board()
             else:
                 print(">> Repeated guess!")
             
-        print("\n\nCongratulations, you won with {} attempts!".format(self.num_attempts))   
+        print("\n\nCongratulations, you won with {} attempts!".format(len(self.attempts)))   
             
     def add_guess(self, guess):
         
@@ -70,7 +72,6 @@ class Battleship():
         if (guess_row, guess_col) in self.attempts:
             return False
         
-        print(guess_row, guess_col)
         self.attempts.append((guess_row, guess_col))
         
         is_boat = any((guess_row, guess_col) in sublist for sublist in self.boat_list) 
@@ -79,7 +80,8 @@ class Battleship():
             self.player_board[guess_row+1][guess_col+1] = "x"
             self.hits.append((guess_row, guess_col))
             print(">> You hit a boat!")
-            print(self.hits)
+            self.check_boats_destroyed()
+            
         else:
             self.player_board[guess_row+1][guess_col+1] = "o"
             print(">> Oops...whater!")
@@ -87,6 +89,13 @@ class Battleship():
         self.win = self.check_win()
         
         return True
+    
+    def check_boats_destroyed(self):
+        
+        for i in range(len(self.boat_list)):
+            if all(i in self.hits for i in self.boat_list[i]) and i not in self.boats_destroyed:
+                self.boats_destroyed.append(i)
+                print(">> {} boat(s) destroyed!".format(len(self.boats_destroyed)))
         
     def check_win(self):
         
@@ -205,6 +214,9 @@ game = Battleship(boats=3)
 board = game.get_board()
 boats = game.get_boats()
 print(boats)
+
+
+
 # game.show_board()
 #game.save_board_pic("C:/Users/Asus/Desktop/Battleship/board.png")
 
