@@ -58,7 +58,7 @@ class Battleship():
         #top level method
         
         print("Welcome to Battleship!")
-        print("You have 5 ships to destroy (all with 3 cells of size). Good luck!")
+        print("You have {} ships to destroy (all with 3 cells of size). Good luck!".format(self.num_boats))
         
         self.print_player_board()
         
@@ -269,7 +269,7 @@ def main():
     game = Battleship(boats=3)  
 
     #game.show_board()
-    #game.save_board_pic("board.png")
+    game.save_board_pic("board.png")
     
     game.play()
     
