@@ -51,94 +51,74 @@ class Battleship():
         #replace all -1 in the board by 0, so now a boat cell is represented by one and the rest is 0
         self.main_board = np.where(self.main_board!=1, 0, self.main_board)
         
-        #create the board that will be presented to the player (with letters in the rows and numbers in the columns)
-        self.player_cols = [str(n) for n in range(1, 10)]
         self.player_rows = ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
-        self.player_board = [list(" ") + self.player_cols]
-        for i in range(len(self.player_rows)):
-            self.player_board.append(list(self.player_rows[i]) + [" "]*9)
+        
+        #create the board that will be presented to the player
+        self.player_board = np.zeros_like(self.main_board)
             
         if not os.path.exists('temporary'):
             os.makedirs('temporary')
             
-        self.save_board_pic('temporary/board.png')
+        self.save_board_pic(self.main_board, 'temporary/secret_board.png')
+        self.save_board_pic(self.player_board, 'temporary/player_board.png')
         
         self.root = tk.Tk()
         
         self.root.configure(bg="white")
-        self.root.state('zoomed')
+        self.root.geometry("750x1000")
+        # self.root.state('zoomed')
         
         self.root.title("Battleship")
         
-        label = tk.Label(self.root, text="Battleship", font="none 15 bold", bg="white")
-        label.pack(anchor="n", pady=10)
+        frame1 = tk.Frame(self.root, bg="#0e0ba7")
+        frame1.pack(anchor="n", fill="x")
         
-        img = Image.open('temporary/board.png')
+        label = tk.Label(frame1, text="Battleship", font="none 18 bold", bg="#0e0ba7", fg="white")
+        label.pack(anchor="n", pady=20, fill="x")
         
-        basewidth = 800
-        wpercent = (basewidth/float(img.size[0]))
-        hsize = int((float(img.size[1])*float(wpercent)))
-        img = img.resize((basewidth,hsize), Image.ANTIALIAS)
-        
-        img = ImageTk.PhotoImage(img)
-        
-        panel = tk.Label(self.root, image = img, bg="white")
-        panel.pack(fill = "both", expand = "yes", anchor="n", pady=10)
-    
-         
-        self.root.mainloop()
-            
-    def play(self):
-        
-        #top level method
-        
-        print("Welcome to Battleship!")
-        print("You have {} ships to destroy (all with 3 cells of size). Good luck!".format(self.num_boats))
-        
-        self.print_player_board()
-        
-        while self.win==False:
-            
-            #ask for a guess
-            guess = input("\n{} - Insert your guess (ROWCOL) or 'exit': ".format(len(self.attempts) + 1))
-            
-            #let the user insert lower or upper letters
-            guess = guess.upper()
-            
-            #check for exit
-            if guess == "EXIT":
-                
-                sys.exit()
-                
-            else:
-                
-                #add guess
-                valid = self.add_guess(guess)
-                
-                #check if guess was valid
-                if valid == "yes":
-                    self.print_player_board()
-                else:
-                    print(valid)
+        frame2 = tk.Frame(self.root, bg="white")
+        frame2.pack(anchor="n")
 
-        #won game  
-        print("\n\nCongratulations, you won with {} attempts!".format(len(self.attempts)))
+        label = tk.Label(frame2, text="Your guess: ", font="none 13 bold", bg="white")
+        label.pack(side="left", anchor="c", fill="y", pady=30)
         
+        self.entry_guess = tk.Entry(frame2, width=5, font="none 12", selectborderwidth=3, bd=3, justify=tk.CENTER)
+        self.entry_guess.pack(side="right", anchor="c")
+        
+        button = tk.Button(self.root, text="Try guess", width=20, command=lambda: self.add_guess(self.entry_guess.get()))
+        button.pack(anchor="n")
+        
+        self.result = tk.Label(self.root, text="", font="none 11 bold", bg="white")
+        self.result.pack(anchor="n", pady=10, fill="x")
+        
+        self.boats_destroyed_label = tk.Label(self.root, text="{} / {} boats destroyed".format(len(self.boats_destroyed), self.num_boats), font="none 10", bg="white")
+        self.boats_destroyed_label.pack(anchor="n", pady=10, fill="x")
+        
+        self.board_frame = tk.Frame(self.root, bg="blue")
+        self.board_frame.pack(anchor="n")
+        
+        self.show_board()
+
         
             
     def add_guess(self, guess):
+        
+        guess = guess.upper()
         
         #insert a guess
         
         #validate the guess
         if len(guess) != 2:
-            return ">> Invalid guess!"
+            self.result.configure(text = "Invalid guess!", fg="red")
+            return
         
         if not guess[0].isalpha() or not guess[1].isdigit():
-            return ">> Invalid guess!"
+            self.result.configure(text = "Invalid guess!", fg="red")
+            return
         
         if guess[0] not in self.player_rows or int(guess[1]) < 0 or int(guess[1]) > 9:
-            return ">> Invalid guess!"
+            self.result.configure(text = "Invalid guess!", fg="red")
+            return
         
         #get the row and column of the guess (correspondent to the game board, not the player board)
         guess_row = self.player_rows.index(guess[0])
@@ -146,26 +126,39 @@ class Battleship():
         
         #check if is repeated guess
         if (guess_row, guess_col) in self.attempts:
-            return ">> Repeated guess!"
+            self.result.configure(text = "Repeated guess!", fg="red")
+            return
         
         self.attempts.append((guess_row, guess_col))
         
         #check if the guess hit a boat
         is_boat = any((guess_row, guess_col) in sublist for sublist in self.boat_list) 
         if is_boat:       
-            self.player_board[guess_row+1][guess_col+1] = "x"
+            self.player_board[guess_row][guess_col] = "3"
             self.hits.append((guess_row, guess_col))
-            print(">> You hit a boat!")
+            self.result.configure(text = "You hit a boat!", fg="#081947")
             self.check_boats_destroyed()
             
         else:
-            self.player_board[guess_row+1][guess_col+1] = "o"
-            print(">> Oops...whater!")
+            self.player_board[guess_row][guess_col] = "2"
+            self.result.configure(text = "Oops...whater!", fg="#081947")
+            
+        self.save_board_pic(self.player_board, 'temporary/player_board.png')
+        self.show_board()
+        
+        
+        
+        self.entry_guess.delete(0, tk.END)
+        
+        self.root.update_idletasks()
             
         #check if game was won
         self.win = self.check_win()
         
-        return "yes"
+        if self.win == True:
+            self.result.configure(text = "You won with {} attempts!".format(len(self.attempts)), fg="green")
+            
+        return
     
     def check_boats_destroyed(self):
         
@@ -174,7 +167,7 @@ class Battleship():
         for i in range(len(self.boat_list)):
             if all(i in self.hits for i in self.boat_list[i]) and i not in self.boats_destroyed:
                 self.boats_destroyed.append(i)
-                print(">> {} boat(s) destroyed!".format(len(self.boats_destroyed)))
+                self.boats_destroyed_label.configure(text="{} / {} boats destroyed".format(len(self.boats_destroyed), self.num_boats))
         
     def check_win(self):
         
@@ -200,24 +193,33 @@ class Battleship():
     
     def show_board(self):
         
-        #show board as image with matplotlib 
+        for widget in self.board_frame.winfo_children():
+            widget.destroy()
         
-        colors = {   0:  [90,  155,  255],
-                     1:  [88,  88,  88]}    
+        img = Image.open('temporary/player_board.png')
         
-        image = np.array([[colors[val] for val in row] for row in self.main_board], dtype='B')
-        plt.imshow(image)
-        plt.axis('off')
-        plt.show()
+        basewidth = 800
+        wpercent = (basewidth/float(img.size[0]))
+        hsize = int((float(img.size[1])*float(wpercent)))
+        img = img.resize((basewidth,hsize), Image.ANTIALIAS)
+        
+        self.img = ImageTk.PhotoImage(img)
+        
+        self.panel_board = tk.Label(self.board_frame, image = self.img, bg="white")
+        self.panel_board.pack(fill = "both", expand = "yes", anchor="n")
+        
+        self.root.update_idletasks()
     
-    def save_board_pic(self, path):
+    def save_board_pic(self, board, path):
         
         #create image and save it as png
         
         colors = {   0:  [90,  155,  255],
-                     1:  [88,  88,  88]}    
+                     1:  [88,  88,  88],
+                     2:  [14,  11,  167],
+                     3:  [255,  0,  0]}
         
-        image = np.array([[colors[val] for val in row] for row in self.main_board], dtype='B')
+        image = np.array([[colors[val] for val in row] for row in board], dtype='B')
         plt.imshow(image)
         plt.axis('off')
         plt.tight_layout()
@@ -305,6 +307,7 @@ class Battleship():
 def main():   
     
     game = Battleship(boats=3)  
+    game.root.mainloop()
 
     #game.show_board()
     # game.save_board_pic("board.png")
