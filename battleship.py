@@ -169,6 +169,7 @@ class Battleship():
                      1:  [88,  88,  88]}    
         
         image = np.array([[colors[val] for val in row] for row in self.main_board], dtype='B')
+
         plt.imshow(image)
         plt.axis('off')
         plt.show()
@@ -268,10 +269,10 @@ def main():
     
     game = Battleship(boats=3)  
 
-    #game.show_board()
-    game.save_board_pic("board.png")
+    game.show_board()
+    # game.save_board_pic("board.png")
     
-    game.play()
+    # game.play()
     
 if __name__ == '__main__':
     

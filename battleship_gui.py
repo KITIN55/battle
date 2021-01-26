@@ -13,8 +13,12 @@ import matplotlib
 matplotlib.use("Agg")
 import sys
 import tkinter as tk
+from tkinter import simpledialog
 import os
 from PIL import ImageTk, Image
+import time
+from tkinter import messagebox
+import shutil
 
 # method used with the ndimage function that checks the neighbors of a boat cell 
 def get_neighbors(values):
@@ -23,10 +27,122 @@ def get_neighbors(values):
 # class of the game
 class Battleship():
     
-    def __init__(self, boats = 3):
+    def __init__(self):
         
-        self.num_boats = boats
+        self.root = tk.Tk()
+        
+        self.root.configure(bg="white")
+        self.root.state('zoomed')
+        
+        self.root.title("Battleship")
+    
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
+        frame1 = tk.Frame(self.root, bg="#0e0ba7")
+        frame1.pack(anchor="n", fill="x")
+        
+        label = tk.Label(frame1, text="Battleship", font="none 18 bold", bg="#0e0ba7", fg="white")
+        label.pack(anchor="n", pady=20, fill="x")
+        
+        frame2 = tk.Frame(self.root, bg="white")
+        frame2.pack(anchor="n", pady=30)
+        
+        label = tk.Label(frame2, text="Number of boats: ", font="none 12 bold", bg="white")
+        label.pack(side="left", anchor="c", fill="y", padx=5)
+        
+        options = [ 
+            "1", 
+            "2", 
+            "3", 
+            "4", 
+            "5"
+        ] 
+        self.option_boats = tk.StringVar()  
+        self.option_boats.set("3") 
+        drop = tk.OptionMenu(frame2, self.option_boats , *options ) 
+        drop.pack(side="left", anchor="c", padx=5) 
+        
+        button = tk.Button(frame2, text="Start", width=8, command=self.start)
+        button.pack(side="left", anchor="c", padx=5)
+        
+        self.game_frame = tk.Frame(self.root, bg="white")
+        self.game_frame.pack(anchor="n")
+        
+    def start(self):
+        
+        for widget in self.game_frame.winfo_children():
+            widget.destroy()
+        
+        self.num_boats = int(self.option_boats.get())
+        
+        self.create_boards()
+        
+        self.solution = False
+        
+        frame3 = tk.Frame(self.game_frame, bg="white")
+        frame3.pack(anchor="n")
 
+        label = tk.Label(frame3, text="Your guess: ", font="none 13 bold", bg="white")
+        label.pack(side="left", anchor="c", fill="y", pady=30)
+        
+        self.entry_guess = tk.Entry(frame3, width=5, font="none 12", selectborderwidth=3, bd=3, justify=tk.CENTER)
+        self.entry_guess.pack(side="right", anchor="c")
+        
+        btn_frame = tk.Frame(self.game_frame, bg="white")
+        btn_frame.pack(anchor="n")
+        
+        button = tk.Button(btn_frame, text="Try guess", width=10, command=lambda: self.add_guess(self.entry_guess.get()))
+        button.pack(side='left', anchor="n", padx=5)
+        
+        self.entry_guess.bind("<Return>", lambda x: self.add_guess(self.entry_guess.get()))
+        
+        self.see_sol_button = tk.Button(btn_frame, text="See solution", width=10, command=self.see_solution)
+        self.see_sol_button.pack(side='left', anchor="n", padx=5)
+        
+        button = tk.Button(btn_frame, text="Restart", width=10, command=self.start)
+        button.pack(side='left', anchor="n", padx=5)
+        
+        self.result = tk.Label(self.game_frame, text="", font="none 11 bold", bg="white")
+        self.result.pack(anchor="n", pady=10, fill="x")     
+        
+        self.boats_destroyed_label = tk.Label(self.game_frame, text="{} / {} boats destroyed".format(len(self.boats_destroyed), self.num_boats), font="none 10", bg="white")
+        self.boats_destroyed_label.pack(anchor="n", pady=10, fill="x")
+        
+        self.board_frame = tk.Frame(self.game_frame, bg="blue")
+        self.board_frame.pack(anchor="n")
+        
+        self.show_board()
+        
+    def on_closing(self):
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            shutil.rmtree("temporary")
+            self.root.destroy()
+        
+    def see_solution(self):
+        
+        for widget in self.board_frame.winfo_children():
+            widget.destroy()
+        
+        img = Image.open('temporary/secret_board.png')
+        
+        basewidth = 800
+        wpercent = (basewidth/float(img.size[0]))
+        hsize = int((float(img.size[1])*float(wpercent)))
+        img = img.resize((basewidth,hsize), Image.ANTIALIAS)
+        
+        self.img = ImageTk.PhotoImage(img)
+        
+        self.panel_board = tk.Label(self.board_frame, image = self.img, bg="white")
+        self.panel_board.pack(fill = "both", expand = "yes", anchor="n")
+        
+        self.root.update_idletasks()
+        
+        time.sleep(0.2)
+        
+        self.show_board()
+
+    def create_boards(self):
+        
         #the board starts as 2D array with 9 rows, 9 columns and all values set to zero
         self.main_board = np.zeros((9,9))
         
@@ -61,45 +177,6 @@ class Battleship():
             
         self.save_board_pic(self.main_board, 'temporary/secret_board.png')
         self.save_board_pic(self.player_board, 'temporary/player_board.png')
-        
-        self.root = tk.Tk()
-        
-        self.root.configure(bg="white")
-        self.root.geometry("750x1000")
-        # self.root.state('zoomed')
-        
-        self.root.title("Battleship")
-        
-        frame1 = tk.Frame(self.root, bg="#0e0ba7")
-        frame1.pack(anchor="n", fill="x")
-        
-        label = tk.Label(frame1, text="Battleship", font="none 18 bold", bg="#0e0ba7", fg="white")
-        label.pack(anchor="n", pady=20, fill="x")
-        
-        frame2 = tk.Frame(self.root, bg="white")
-        frame2.pack(anchor="n")
-
-        label = tk.Label(frame2, text="Your guess: ", font="none 13 bold", bg="white")
-        label.pack(side="left", anchor="c", fill="y", pady=30)
-        
-        self.entry_guess = tk.Entry(frame2, width=5, font="none 12", selectborderwidth=3, bd=3, justify=tk.CENTER)
-        self.entry_guess.pack(side="right", anchor="c")
-        
-        button = tk.Button(self.root, text="Try guess", width=20, command=lambda: self.add_guess(self.entry_guess.get()))
-        button.pack(anchor="n")
-        
-        self.result = tk.Label(self.root, text="", font="none 11 bold", bg="white")
-        self.result.pack(anchor="n", pady=10, fill="x")
-        
-        self.boats_destroyed_label = tk.Label(self.root, text="{} / {} boats destroyed".format(len(self.boats_destroyed), self.num_boats), font="none 10", bg="white")
-        self.boats_destroyed_label.pack(anchor="n", pady=10, fill="x")
-        
-        self.board_frame = tk.Frame(self.root, bg="blue")
-        self.board_frame.pack(anchor="n")
-        
-        self.show_board()
-
-        
             
     def add_guess(self, guess):
         
@@ -136,7 +213,7 @@ class Battleship():
         if is_boat:       
             self.player_board[guess_row][guess_col] = "3"
             self.hits.append((guess_row, guess_col))
-            self.result.configure(text = "You hit a boat!", fg="#081947")
+            self.result.configure(text = "You hit a boat!", fg="#075fea")
             self.check_boats_destroyed()
             
         else:
@@ -145,8 +222,6 @@ class Battleship():
             
         self.save_board_pic(self.player_board, 'temporary/player_board.png')
         self.show_board()
-        
-        
         
         self.entry_guess.delete(0, tk.END)
         
@@ -220,9 +295,20 @@ class Battleship():
                      3:  [255,  0,  0]}
         
         image = np.array([[colors[val] for val in row] for row in board], dtype='B')
-        plt.imshow(image)
-        plt.axis('off')
-        plt.tight_layout()
+
+        fig = plt.figure()
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8]) 
+        ax.set_xticks([0,1,2,3,4,5,6,7,8])
+        ax.set_yticks([0,1,2,3,4,5,6,7,8])
+        ax.invert_yaxis()
+        ax.xaxis.tick_top()
+        ax.imshow(image)
+        ax.set_yticklabels(["A", "B", "C", "D", "E", "F", "G", "H", "I"])
+        ax.set_xticklabels(["1", "2", "3", "4", "5", "6", "7", "8", "9"])
+        for i in list(np.arange(0.5, 8.5, 1)):
+            plt.axvline(x = i, color = 'black', linestyle = '-', lw=0.5) 
+            plt.axhline(y = i, color = 'black', linestyle = '-', lw=0.5) 
+        plt.tick_params(axis='both', labelsize=12, length = 0)
         plt.savefig(path)
 
     def add_boat(self):
@@ -306,14 +392,9 @@ class Battleship():
     
 def main():   
     
-    game = Battleship(boats=3)  
+    game = Battleship()  
     game.root.mainloop()
 
-    #game.show_board()
-    # game.save_board_pic("board.png")
-    
-    # game.play()
-    
 if __name__ == '__main__':
     
     main()
