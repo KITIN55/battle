@@ -173,18 +173,6 @@ class Battleship():
         plt.imshow(image)
         plt.axis('off')
         plt.show()
-    
-    def save_board_pic(self, path):
-        
-        #create image and save it as png
-        
-        colors = {   0:  [90,  155,  255],
-                     1:  [88,  88,  88]}    
-        
-        image = np.array([[colors[val] for val in row] for row in self.main_board], dtype='B')
-        plt.imshow(image)
-        plt.axis('off')
-        plt.savefig(path)
 
     def add_boat(self):
         
