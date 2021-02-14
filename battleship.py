@@ -123,7 +123,7 @@ class Battleship():
             
         else:
             self.player_board[guess_row+1][guess_col+1] = "o"
-            print(">> Oops...whater!")
+            print(">> Oops...water!")
             
         #check if game was won
         self.win = self.check_win()
@@ -257,10 +257,10 @@ def main():
     
     game = Battleship(boats=3)  
 
-    game.show_board()
+    # game.show_board()
     # game.save_board_pic("board.png")
     
-    # game.play()
+    game.play()
     
 if __name__ == '__main__':
     
